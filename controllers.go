@@ -122,6 +122,21 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 		return
 	}
 
+	sizeInfo, err := bimg.Size(buf)
+
+	if err != nil {
+		ErrorReply(r, w, NewError("Error while processing the image: "+err.Error(), http.StatusBadRequest), o)
+		return
+	}
+
+	// https://en.wikipedia.org/wiki/Image_resolution#Pixel_count
+	imgResolution := float64(sizeInfo.Width) * float64(sizeInfo.Height)
+
+	if (imgResolution / 1000000) > o.MaxAllowedPixels {
+		ErrorReply(r, w, ErrResolutionTooBig, o)
+		return
+	}
+
 	image, err := operation.Run(buf, opts)
 	if err != nil {
 		// Ensure the Vary header is set when an error occurs
